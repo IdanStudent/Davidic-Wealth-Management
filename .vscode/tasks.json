@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Install backend deps",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"python -m venv .venv; .\\.venv\\Scripts\\Activate.ps1; pip install -r backend/requirements.txt"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "api-smoke-test",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$base='http://localhost:8000'; $email = 'smoke+' + (Get-Random) + '@test.local'; $password='Passw0rd!123'; $body = @{ email=$email; password=$password; full_name='Smoke Test' } | ConvertTo-Json; $reg = Invoke-RestMethod -Uri ($base + '/api/auth/register') -Method Post -ContentType 'application/json' -Body $body; $loginBody = @{ email=$email; password=$password } | ConvertTo-Json; $login = Invoke-RestMethod -Uri ($base + '/api/auth/login') -Method Post -ContentType 'application/json' -Body $loginBody; $token = $login.access_token; Write-Host 'Token acquired length:' ($token.Length); $accBody = @{ name='Checking'; type='Cash'; opening_balance=1000; is_liability=$false } | ConvertTo-Json; $acc = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/accounts/') -Method Post -ContentType 'application/json' -Body $accBody; Write-Host 'Account ID:' $acc.id; $cats = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/categories/') -Method Get; $exp = $cats | Where-Object { $_.type -eq 'expense' } | Select-Object -First 1; Write-Host 'Expense cat:' $exp.id; $today = Get-Date -Format 'yyyy-MM-dd'; $txBody = @{ account_id=$acc.id; category_id=$exp.id; date=$today; amount=25.5; note='Smoke expense' } | ConvertTo-Json; $tx = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/transactions/') -Method Post -ContentType 'application/json' -Body $txBody; Write-Host 'Tx ID:' $tx.id; $month = Get-Date -Format 'yyyy-MM'; $budBody = @{ month=$month; items=@(@{ category_id=$exp.id; limit=500 }) } | ConvertTo-Json; $bud = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/budgets/') -Method Post -ContentType 'application/json' -Body $budBody; Write-Host 'Budget ID:' $bud.id; $y = [int](Get-Date -Format 'yyyy'); $m = [int](Get-Date -Format 'MM'); $rep = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/reports/monthly?year=' + $y + '&month=' + $m); Write-Host ('Report income=' + $rep.income + ' expenses=' + $rep.expenses + ' savings=' + $rep.savings); $csv = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/reports/export/csv?year=' + $y + '&month=' + $m); Write-Host ('CSV bytes=' + ($csv.content.Length)); $pdf = Invoke-RestMethod -Headers @{ Authorization = 'Bearer ' + $token } -Uri ($base + '/api/reports/export/pdf?year=' + $y + '&month=' + $m); Write-Host ('PDF b64 len=' + ($pdf.content_b64.Length));"
+			]
+		}
+	]
+}
