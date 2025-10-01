@@ -11,6 +11,7 @@ import Categories from './pages/Categories'
 import Investments from './pages/Investments'
 import Settings from './pages/Settings'
 import { AuthProvider, useAuth } from './components/AuthContext'
+import Sidebar from './components/Sidebar'
 
 function PrivateRoute({ children }) {
   const { token } = useAuth()
@@ -20,33 +21,52 @@ function PrivateRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen">
-        <nav className="bg-white shadow">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold text-jewishBlue">Jewish Wealth</Link>
-            <NavLinks />
-          </div>
-        </nav>
-        <main className="max-w-6xl mx-auto p-4">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
-            <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
-            <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
-            <Route path="/budgets" element={<PrivateRoute><Budgets /></PrivateRoute>} />
-            <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
-            <Route path="/investments" element={<PrivateRoute><Investments /></PrivateRoute>} />
-            <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        {/* Public routes without sidebar */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Authenticated layout with sidebar */}
+        <Route
+          path="*"
+          element={
+            <PrivateRoute>
+              <AppShell />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
     </AuthProvider>
   )
 }
 
-function NavLinks() {
+function AppShell() {
+  return (
+    <div className="min-h-screen flex bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 min-w-0">
+        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <Link to="/" className="text-xl font-bold text-jewishBlue">Jewish Wealth</Link>
+          <NavLinks minimal />
+        </header>
+        <main className="p-4">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/accounts" element={<Accounts />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/budgets" element={<Budgets />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/investments" element={<Investments />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  )
+}
+
+function NavLinks({ minimal = false }) {
   const { token, logout } = useAuth()
   if (!token) {
     return (
@@ -56,16 +76,10 @@ function NavLinks() {
       </div>
     )
   }
-  return (
-    <div className="space-x-4">
-      <Link to="/categories">Categories</Link>
-      <Link to="/accounts">Accounts</Link>
-          <Link to="/investments">Investments</Link>
-      <Link to="/transactions">Transactions</Link>
-      <Link to="/budgets">Budgets</Link>
-      <Link to="/reports">Reports</Link>
-      <Link to="/settings">Settings</Link>
+  if (minimal) {
+    return (
       <button onClick={logout} className="text-red-600">Logout</button>
-    </div>
-  )
+    )
+  }
+  return null
 }
