@@ -13,6 +13,7 @@ class AccountCreate(AccountBase):
 
 class AccountOut(AccountBase):
     id: int
+    balance: float = 0.0
 
     class Config:
         from_attributes = True
@@ -43,11 +44,40 @@ class TransactionBase(BaseModel):
     date: date
     amount: float
     note: Optional[str] = ""
+    is_transfer: bool = False
+    counterparty_account_id: Optional[int] = None
 
 class TransactionCreate(TransactionBase):
     pass
 
 class TransactionOut(TransactionBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class InvestmentCreate(BaseModel):
+    symbol: str
+    name: Optional[str] = None
+
+class InvestmentOut(BaseModel):
+    id: int
+    symbol: str
+    name: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+class InvestmentTransactionCreate(BaseModel):
+    investment_id: int
+    account_id: int
+    date: date
+    type: str  # buy|sell
+    quantity: float
+    unit_price: float
+
+class InvestmentTransactionOut(InvestmentTransactionCreate):
     id: int
 
     class Config:

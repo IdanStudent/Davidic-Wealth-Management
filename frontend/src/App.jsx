@@ -8,6 +8,7 @@ import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Reports from './pages/Reports'
 import Categories from './pages/Categories'
+import Investments from './pages/Investments'
 import Settings from './pages/Settings'
 import { AuthProvider, useAuth } from './components/AuthContext'
 
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
             <Route path="/budgets" element={<PrivateRoute><Budgets /></PrivateRoute>} />
             <Route path="/reports" element={<PrivateRoute><Reports /></PrivateRoute>} />
+            <Route path="/investments" element={<PrivateRoute><Investments /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
           </Routes>
         </main>
@@ -58,6 +60,7 @@ function NavLinks() {
     <div className="space-x-4">
       <Link to="/categories">Categories</Link>
       <Link to="/accounts">Accounts</Link>
+          <Link to="/investments">Investments</Link>
       <Link to="/transactions">Transactions</Link>
       <Link to="/budgets">Budgets</Link>
       <Link to="/reports">Reports</Link>

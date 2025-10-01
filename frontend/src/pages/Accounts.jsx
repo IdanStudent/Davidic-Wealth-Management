@@ -67,7 +67,7 @@ export default function Accounts() {
           {accounts.map(a => (
             <li key={a.id} className="flex justify-between items-center border p-2 rounded">
               <div>
-                <div className="font-semibold">{a.name}</div>
+                <div className="font-semibold">{a.name} <span className="text-sm text-gray-600">${(a.balance||0).toFixed(2)}</span></div>
                 <div className="text-sm text-gray-500">{a.type} {a.is_liability ? '(Liability)' : ''}</div>
               </div>
               <button onClick={()=>remove(a.id)} className="text-red-600">Delete</button>

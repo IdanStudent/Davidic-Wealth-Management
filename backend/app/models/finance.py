@@ -24,7 +24,8 @@ class Account(Base):
     is_liability = Column(Boolean, default=False)
 
     owner = relationship("User", back_populates="accounts")
-    transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
+    # specify foreign_keys to disambiguate from Transaction.counterparty_account_id
+    transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan", foreign_keys='Transaction.account_id')
 
 class Category(Base):
     __tablename__ = "categories"
@@ -47,10 +48,17 @@ class Transaction(Base):
     date = Column(Date, nullable=False)
     amount = Column(Float, nullable=False)
     note = Column(String, default="")
+    # Transfer support
+    is_transfer = Column(Boolean, default=False)
+    counterparty_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
 
     owner = relationship("User", back_populates="transactions")
-    account = relationship("Account", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
+
+    # counterparty relationship (optional)
+    counterparty_account = relationship("Account", foreign_keys=[counterparty_account_id])
+    # specify which FK links Transaction -> Account for the main account relationship
+    account = relationship("Account", back_populates="transactions", foreign_keys=[account_id])
 
 class Budget(Base):
     __tablename__ = "budgets"
@@ -89,3 +97,30 @@ class Goal(Base):
     due_date = Column(String, default="")
 
     owner = relationship("User", back_populates="goals")
+
+
+class Investment(Base):
+    __tablename__ = 'investments'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    symbol = Column(String, nullable=False)
+    name = Column(String, nullable=True)
+
+    owner = relationship('User')
+    transactions = relationship('InvestmentTransaction', back_populates='investment', cascade='all, delete-orphan')
+
+
+class InvestmentTransaction(Base):
+    __tablename__ = 'investment_transactions'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    investment_id = Column(Integer, ForeignKey('investments.id'), nullable=False)
+    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False)
+    date = Column(Date, nullable=False)
+    type = Column(String, nullable=False)  # buy | sell
+    quantity = Column(Float, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    total_cost = Column(Float, nullable=False)
+
+    investment = relationship('Investment', back_populates='transactions')
+    account = relationship('Account')

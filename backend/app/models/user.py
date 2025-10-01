@@ -21,6 +21,8 @@ class User(Base):
     tz = Column(String, default="Asia/Jerusalem")
     lat = Column(Float, default=31.778)
     lon = Column(Float, default=35.235)
+    # Maaser percentage (0.10 = 10%) user configurable
+    maaser_pct = Column(Float, default=0.10)
 
     accounts = relationship("Account", back_populates="owner", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="owner", cascade="all, delete-orphan")

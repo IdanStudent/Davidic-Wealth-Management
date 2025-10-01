@@ -46,6 +46,7 @@ def migrate_sqlite(engine):
         ("state", "TEXT"),
         ("postal_code", "TEXT"),
         ("country", "TEXT"),
+        ("maaser_pct", "REAL"),
     ]
     with engine.connect() as conn:
         for name, typ in cols:
@@ -54,3 +55,40 @@ def migrate_sqlite(engine):
             except Exception:
                 # Column likely already exists
                 pass
+        # Add transaction columns introduced later
+        try:
+            conn.execute(text("ALTER TABLE transactions ADD COLUMN is_transfer BOOLEAN DEFAULT 0"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE transactions ADD COLUMN counterparty_account_id INTEGER NULL"))
+        except Exception:
+            pass
+        # Create investments tables if they don't exist
+        try:
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS investments (
+                    id INTEGER PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    symbol TEXT NOT NULL,
+                    name TEXT
+                )
+            '''))
+        except Exception:
+            pass
+        try:
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS investment_transactions (
+                    id INTEGER PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    investment_id INTEGER NOT NULL,
+                    account_id INTEGER NOT NULL,
+                    date TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    quantity REAL NOT NULL,
+                    unit_price REAL NOT NULL,
+                    total_cost REAL NOT NULL
+                )
+            '''))
+        except Exception:
+            pass

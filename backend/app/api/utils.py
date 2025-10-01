@@ -17,6 +17,8 @@ class ProfileUpdate(BaseModel):
     state: str | None = None
     postal_code: str | None = None
     country: str | None = None
+    maaser_pct: float | None = None
+    maaser_opt_in: bool | None = None
 
 router = APIRouter()
 
@@ -30,6 +32,7 @@ def me(user=Depends(get_current_user)):
         "tz": user.tz,
         "lat": user.lat,
         "lon": user.lon,
+        "maaser_pct": user.maaser_pct,
     }
 
 @router.get("/maaser")
@@ -49,6 +52,25 @@ def update_settings(shabbat_mode: bool, lat: float, lon: float, db: Session = De
     db.commit()
     db.refresh(user)
     return {"ok": True}
+
+
+class MaaserSettings(BaseModel):
+    maaser_pct: float | None = None
+    maaser_opt_in: bool | None = None
+
+
+@router.post('/maaser_settings')
+def set_maaser_settings(payload: MaaserSettings, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if payload.maaser_pct is not None:
+        user.maaser_pct = float(payload.maaser_pct)
+    if payload.maaser_opt_in is not None:
+        # maaser_opt_in is stored as shabbat_mode temporarily until a dedicated column; for now we set maaser_pct=0 when opted-out
+        if payload.maaser_opt_in is False:
+            user.maaser_pct = 0.0
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"ok": True, "maaser_pct": user.maaser_pct}
 
 @router.post("/profile")
 def update_profile(payload: ProfileUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

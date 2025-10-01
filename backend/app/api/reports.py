@@ -15,7 +15,8 @@ def monthly_summary(year: int, month: int, db: Session = Depends(get_db), user=D
     start = date(year, month, 1)
     end = date(year + (1 if month == 12 else 0), 1 if month == 12 else month + 1, 1)
 
-    q = db.query(Transaction).filter(Transaction.user_id == user.id, Transaction.date >= start, Transaction.date < end)
+    # Exclude transfer transactions from income/expense totals
+    q = db.query(Transaction).filter(Transaction.user_id == user.id, Transaction.is_transfer == False, Transaction.date >= start, Transaction.date < end)
     income = 0.0
     expenses = 0.0
     for tx in q:
@@ -37,17 +38,24 @@ def monthly_summary(year: int, month: int, db: Session = Depends(get_db), user=D
     spending_by_category = (
         db.query(Category.name, func.sum(Transaction.amount))
         .join(Category, Transaction.category_id == Category.id)
-        .filter(Transaction.user_id == user.id, Transaction.date >= start, Transaction.date < end)
+        .filter(Transaction.user_id == user.id, Transaction.is_transfer == False, Transaction.date >= start, Transaction.date < end)
         .group_by(Category.name)
         .all()
     )
     spending = {name: float(total or 0) for name, total in spending_by_category}
+
+    # Maaser total: sum of transactions credited to the Maaser account in this month
+    maaser_acc = db.query(Account).filter(Account.user_id == user.id, Account.name == 'Maaser').first()
+    maaser_total = 0.0
+    if maaser_acc:
+        maaser_total = float(db.query(func.sum(Transaction.amount)).filter(Transaction.user_id == user.id, Transaction.account_id == maaser_acc.id, Transaction.date >= start, Transaction.date < end).scalar() or 0.0)
 
     return {
         "income": income,
         "expenses": expenses,
         "savings": savings,
         "spending": spending,
+        "maaser": maaser_total,
         "budget": [
             {"category": c.name, "limit": float(bi.limit)} for bi, c in budget_items
         ],

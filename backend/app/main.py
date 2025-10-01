@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .core.config import settings
-from .api import auth, accounts, transactions, budgets, reports, goals, utils, categories
+from .api import auth, accounts, transactions, budgets, reports, goals, utils, categories, investments
 from .core.db import Base, engine, init_db
 # ensure models are imported before create_all
 from .models import user as _user_models  # noqa: F401
@@ -30,6 +30,7 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(goals.router, prefix="/api/goals", tags=["goals"]) 
 app.include_router(utils.router, prefix="/api/utils", tags=["utils"]) 
 app.include_router(categories.router, prefix="/api/categories", tags=["categories"]) 
+app.include_router(investments.router, prefix="/api/investments", tags=["investments"]) 
 
 @app.get("/")
 async def root():
