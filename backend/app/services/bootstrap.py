@@ -20,6 +20,7 @@ def ensure_default_categories(db: Session, user_id: int):
     defaults = [
         ("Income", CategoryType.INCOME, True, "coin"),
         ("Tzedakah", CategoryType.EXPENSE, True, "charity"),
+        ("Transfer", CategoryType.EXPENSE, True, "transfer"),
         ("Food", CategoryType.EXPENSE, False, "utensils"),
         ("Housing", CategoryType.EXPENSE, False, "home"),
         ("Transport", CategoryType.EXPENSE, False, "car"),

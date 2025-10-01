@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../components/AuthContext'
+import { Link } from 'react-router-dom'
 
 export default function Accounts() {
   const { api } = useAuth()
@@ -7,6 +8,7 @@ export default function Accounts() {
   const [form, setForm] = useState({ name: '', type: 'Cash', opening_balance: '', is_liability: false })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [editingId, setEditingId] = useState(null)
 
   const load = async () => {
     setError('')
@@ -28,7 +30,12 @@ export default function Accounts() {
         ...form,
         opening_balance: form.opening_balance === '' ? 0 : parseFloat(form.opening_balance)
       }
-      await api.post('/accounts/', payload)
+      if (editingId) {
+        await api.patch(`/accounts/${editingId}`, payload)
+        setEditingId(null)
+      } else {
+        await api.post('/accounts/', payload)
+      }
       setForm({ name: '', type: 'Cash', opening_balance: '', is_liability: false })
       await load()
     } catch (e) {
@@ -36,6 +43,16 @@ export default function Accounts() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const startEdit = (acc) => {
+    setEditingId(acc.id)
+    setForm({ name: acc.name || '', type: acc.type || 'Cash', opening_balance: (acc.balance ?? 0).toString(), is_liability: !!acc.is_liability })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setForm({ name: '', type: 'Cash', opening_balance: '', is_liability: false })
   }
 
   const remove = async (id) => {
@@ -70,7 +87,11 @@ export default function Accounts() {
                 <div className="font-semibold">{a.name} <span className="text-sm text-gray-600">${(a.balance||0).toFixed(2)}</span></div>
                 <div className="text-sm text-gray-500">{a.type} {a.is_liability ? '(Liability)' : ''}</div>
               </div>
-              <button onClick={()=>remove(a.id)} className="text-red-600">Delete</button>
+              <div className="flex items-center gap-2">
+                <Link to={`/transactions?account_id=${a.id}`} className="text-jewishBlue">Transactions</Link>
+                <button onClick={()=>startEdit(a)} className="text-blue-600">Edit</button>
+                <button onClick={()=>remove(a.id)} className="text-red-600">Delete</button>
+              </div>
             </li>
           ))}
         </ul>

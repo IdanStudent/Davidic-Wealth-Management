@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import date
 
@@ -10,6 +10,13 @@ class AccountBase(BaseModel):
 
 class AccountCreate(AccountBase):
     pass
+
+
+class AccountUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    opening_balance: Optional[float] = None
+    is_liability: Optional[bool] = None
 
 class AccountOut(AccountBase):
     id: int
@@ -47,6 +54,18 @@ class TransactionBase(BaseModel):
     is_transfer: bool = False
     counterparty_account_id: Optional[int] = None
 
+    @field_validator('date', mode='before')
+    def _coerce_date(cls, v):
+        # Accept both date objects and ISO date strings (including years with leading zeros)
+        if v is None:
+            return v
+        if isinstance(v, date):
+            return v
+        try:
+            return date.fromisoformat(str(v))
+        except Exception:
+            raise ValueError('Invalid date format')
+
 class TransactionCreate(TransactionBase):
     pass
 
@@ -76,6 +95,17 @@ class InvestmentTransactionCreate(BaseModel):
     type: str  # buy|sell
     quantity: float
     unit_price: float
+
+    @field_validator('date', mode='before')
+    def _coerce_date(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, date):
+            return v
+        try:
+            return date.fromisoformat(str(v))
+        except Exception:
+            raise ValueError('Invalid date format')
 
 class InvestmentTransactionOut(InvestmentTransactionCreate):
     id: int

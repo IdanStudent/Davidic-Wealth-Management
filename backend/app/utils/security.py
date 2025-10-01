@@ -50,6 +50,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 
 def decode_token(token: str):
     try:
+        if not token:
+            return None
+        # tolerate a token value that accidentally includes the scheme prefix
+        if token.startswith("Bearer "):
+            token = token.split(" ", 1)[1]
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError:
