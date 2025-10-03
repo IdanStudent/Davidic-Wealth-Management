@@ -8,3 +8,4 @@ pydantic
 pytest-asyncio
 starlette
 python-dotenv
+slowapi
