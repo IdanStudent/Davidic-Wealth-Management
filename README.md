@@ -1,6 +1,6 @@
-# Personal Wealth Management App (Jewish-Oriented)
+# Malka Money — Personal Wealth Management
 
-Full-stack MVP with a FastAPI backend and a React + Tailwind frontend. Tracks accounts, transactions, budgets, net worth, and reports with Jewish features like Shabbat Mode, Tzedakah, Maaser calculator, and holiday reminders.
+Full-stack MVP with a FastAPI backend and a React + Tailwind frontend. Tracks accounts, transactions, budgets, net worth, and reports with features like Shabbat Mode, Tzedakah, Maaser calculator, and holiday reminders.
 
 ## Tech Stack
 - Backend: FastAPI, SQLAlchemy, SQLite (MVP), JWT auth

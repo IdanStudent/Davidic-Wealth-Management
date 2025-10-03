@@ -14,8 +14,11 @@ export function AuthProvider({ children }) {
       .catch(() => setMe(null))
   }, [token])
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password })
+  const login = async (email, password, opts = {}) => {
+    const payload = { email, password }
+    if (opts.otp) payload.otp = opts.otp
+    if (opts.recovery) payload.recovery = opts.recovery
+    const res = await api.post('/auth/login', payload)
     const t = res.data.access_token.replace(/^Bearer\s+/i, '')
     setToken(t)
     localStorage.setItem('token', t)

@@ -133,14 +133,14 @@ export default function Transactions() {
         <input className="w-full border p-2" value={form.note} onChange={e=>setForm({...form, note:e.target.value})} placeholder="Note" />
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div className="flex items-center gap-2">
-          <button disabled={loading} className="bg-jewishBlue text-white px-4 py-2 rounded">{loading ? 'Saving…' : (editingId ? 'Update' : 'Save')}</button>
+          <button disabled={loading} className="bg-malkaBlue text-white px-4 py-2 rounded">{loading ? 'Saving…' : (editingId ? 'Update' : 'Save')}</button>
           {editingId ? <button type="button" onClick={cancelEdit} className="px-3 py-2 border rounded">Cancel</button> : null}
         </div>
       </form>
       <div className="bg-white p-4 rounded shadow">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-semibold">Transactions</h2>
-          {initialAccountId ? <a href="/transactions" className="text-sm text-jewishBlue">Show all</a> : null}
+          {initialAccountId ? <a href="/transactions" className="text-sm text-malkaBlue">Show all</a> : null}
         </div>
         <ul className="space-y-2">
           {transactions.map(t => (

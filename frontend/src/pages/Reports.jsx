@@ -38,7 +38,7 @@ export default function Reports() {
         <div className="flex gap-2 mb-3">
           <input className="border p-2" type="number" value={year} onChange={e=>setYear(parseInt(e.target.value))} />
           <input className="border p-2" type="number" value={month} onChange={e=>setMonth(parseInt(e.target.value))} />
-          <button onClick={load} className="bg-jewishBlue text-white px-3 py-2 rounded">Load</button>
+          <button onClick={load} className="bg-malkaBlue text-white px-3 py-2 rounded">Load</button>
         </div>
         {report && (
           <div className="grid grid-cols-3 gap-4">

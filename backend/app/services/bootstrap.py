@@ -65,6 +65,12 @@ def migrate_sqlite(engine):
             conn.execute(text("ALTER TABLE transactions ADD COLUMN counterparty_account_id INTEGER NULL"))
         except Exception:
             pass
+        # Ensure user_twofa table has recovery_codes column
+        try:
+            conn.execute(text("ALTER TABLE user_twofa ADD COLUMN recovery_codes TEXT"))
+        except Exception:
+            # Column or table may already include it
+            pass
         # Create investments tables if they don't exist
         try:
             conn.execute(text('''

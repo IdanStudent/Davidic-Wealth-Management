@@ -27,6 +27,8 @@ class UserCreate(UserBase):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    otp: Optional[str] = None
+    recovery: Optional[str] = None
 
 class UserOut(UserBase):
     id: int

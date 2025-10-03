@@ -50,7 +50,7 @@ export default function Budgets() {
         ))}
         <div className="flex gap-2">
           <button type="button" onClick={addItem} className="px-3 py-2 border rounded">Add Item</button>
-          <button className="bg-jewishBlue text-white px-4 py-2 rounded">Save Budget</button>
+          <button className="bg-malkaBlue text-white px-4 py-2 rounded">Save Budget</button>
         </div>
       </form>
 

@@ -41,12 +41,52 @@ export default function App() {
 }
 
 function AppShell() {
+  const [mobileOpen, setMobileOpen] = React.useState(false)
+  const hamburgerRef = React.useRef(null)
+
+  // Close on Esc when open
+  React.useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+
+  // Restore focus to hamburger on close
+  React.useEffect(() => {
+    if (!mobileOpen && hamburgerRef.current) {
+      hamburgerRef.current.focus({ preventScroll: true })
+    }
+  }, [mobileOpen])
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <Sidebar />
+      {/* Overlay for mobile */}
+      <div
+        className={
+          'fixed inset-0 z-40 bg-black/40 md:hidden transition-opacity duration-200 ' +
+          (mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')
+        }
+        onClick={() => setMobileOpen(false)}
+        aria-hidden
+      />
+      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <div className="flex-1 min-w-0">
         <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-jewishBlue">Jewish Wealth</Link>
+          <div className="flex items-center gap-2">
+            <button
+              ref={hamburgerRef}
+              className="md:hidden inline-flex text-gray-700 hover:text-gray-900 p-2 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-malkaBlue"
+              aria-label="Open menu"
+              onClick={() => setMobileOpen(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                <path fillRule="evenodd" d="M3.75 6.75a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75Zm0 5.25a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75Zm0 5.25a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <Link to="/" className="text-xl font-bold text-malkaBlue">Malka Money</Link>
+          </div>
           <NavLinks minimal />
         </header>
         <main className="p-4">

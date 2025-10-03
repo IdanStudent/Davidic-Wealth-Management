@@ -9,7 +9,15 @@ ROOT = os.path.dirname(__file__)
 VENV_PY = sys.executable
 
 def start_backend():
-    cmd = [VENV_PY, '-m', 'uvicorn', 'app.main:app', '--app-dir', 'backend', '--host', '0.0.0.0', '--port', '8000', '--reload']
+    cmd = [
+        VENV_PY, '-m', 'uvicorn', 'app.main:app',
+        '--app-dir', 'backend',
+        '--host', '127.0.0.1', '--port', '8000',
+        '--reload', '--reload-dir', 'backend',
+        '--reload-exclude', '.venv',
+        '--reload-exclude', 'frontend/node_modules',
+        '--reload-exclude', '.git',
+    ]
     print('Starting backend:', ' '.join(cmd))
     return subprocess.Popen(cmd, cwd=ROOT)
 
@@ -39,7 +47,7 @@ def wait_for(url, timeout=30):
 def main():
     backend = start_backend()
     try:
-        if wait_for('http://localhost:8000/'):
+        if wait_for('http://127.0.0.1:8000/'):
             print('Backend ready')
         else:
             print('Backend did not start in time')

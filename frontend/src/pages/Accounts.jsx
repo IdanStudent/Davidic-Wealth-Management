@@ -76,7 +76,7 @@ export default function Accounts() {
         <input className="w-full border p-2" type="number" step="0.01" placeholder="Opening Balance" value={form.opening_balance} onChange={e=>setForm({...form, opening_balance:e.target.value})} />
   <label className="flex items-center gap-2"><input type="checkbox" checked={form.is_liability} onChange={e=>setForm({...form, is_liability:e.target.checked})} /> Liability</label>
         {error && <div className="text-sm text-red-600">{error}</div>}
-        <button disabled={loading} className="bg-jewishBlue text-white px-4 py-2 rounded">{loading ? 'Please wait…' : 'Save'}</button>
+  <button disabled={loading} className="bg-malkaBlue text-white px-4 py-2 rounded">{loading ? 'Please wait…' : 'Save'}</button>
       </form>
       <div className="bg-white p-4 rounded shadow">
         <h2 className="font-semibold mb-2">Accounts</h2>
@@ -88,7 +88,7 @@ export default function Accounts() {
                 <div className="text-sm text-gray-500">{a.type} {a.is_liability ? '(Liability)' : ''}</div>
               </div>
               <div className="flex items-center gap-2">
-                <Link to={`/transactions?account_id=${a.id}`} className="text-jewishBlue">Transactions</Link>
+                <Link to={`/transactions?account_id=${a.id}`} className="text-malkaBlue">Transactions</Link>
                 <button onClick={()=>startEdit(a)} className="text-blue-600">Edit</button>
                 <button onClick={()=>remove(a.id)} className="text-red-600">Delete</button>
               </div>
