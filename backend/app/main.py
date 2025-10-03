@@ -28,7 +28,7 @@ def _split_csv(val: str) -> list[str]:
 origins = _split_csv(settings.BACKEND_CORS_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins or [settings.BACKEND_CORS_ORIGINS],
+    allow_origins=origins or [settings.BACKEND_CORS_ORIGINS] or ["https://davidic-wealth-management-3.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
