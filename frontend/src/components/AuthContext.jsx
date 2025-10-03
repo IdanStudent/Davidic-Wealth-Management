@@ -14,8 +14,11 @@ export function AuthProvider({ children }) {
       .catch(() => setMe(null))
   }, [token])
 
-  const login = async (email, password, opts = {}) => {
-    const payload = { email, password }
+  const login = async (identifier, password, opts = {}) => {
+    const isEmail = /.+@.+\..+/.test(identifier)
+    const payload = { password }
+    if (isEmail) payload.email = identifier
+    else payload.username = identifier
     if (opts.otp) payload.otp = opts.otp
     if (opts.recovery) payload.recovery = opts.recovery
     const res = await api.post('/auth/login', payload)

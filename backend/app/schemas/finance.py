@@ -7,6 +7,9 @@ class AccountBase(BaseModel):
     type: str
     opening_balance: float = 0.0
     is_liability: bool = False
+    apr_annual: float | None = None
+    min_payment: float | None = None
+    due_day: int | None = None
 
 class AccountCreate(AccountBase):
     pass
@@ -17,6 +20,9 @@ class AccountUpdate(BaseModel):
     type: Optional[str] = None
     opening_balance: Optional[float] = None
     is_liability: Optional[bool] = None
+    apr_annual: Optional[float] = None
+    min_payment: Optional[float] = None
+    due_day: Optional[int] = None
 
 class AccountOut(AccountBase):
     id: int
@@ -116,6 +122,9 @@ class InvestmentTransactionOut(InvestmentTransactionCreate):
 class BudgetItemIn(BaseModel):
     category_id: int
     limit: float
+    item_type: str | None = "fixed"  # fixed | flex
+    tolerance_pct: float | None = 0.15
+    window_months: int | None = 3
 
 class BudgetCreate(BaseModel):
     month: str  # YYYY-MM
@@ -150,3 +159,49 @@ class GoalOut(GoalBase):
 
     class Config:
         from_attributes = True
+
+
+class CategoryRuleIn(BaseModel):
+    pattern: str
+    category_id: int
+    min_amount: float | None = None
+    max_amount: float | None = None
+    case_sensitive: bool = False
+
+class CategoryRuleOut(CategoryRuleIn):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# Debt planner
+class DebtInput(BaseModel):
+    id: int
+    name: str
+    balance: float
+    apr_annual: float
+    min_payment: float
+    due_day: int | None = None
+
+class DebtPlanRequest(BaseModel):
+    strategy: str  # snowball | avalanche
+    monthly_budget: float
+    debts: list[DebtInput]
+    extra_payment: float | None = 0.0
+    # Optional APR changes during the plan
+    # each item: { debt_id, month_offset: int (0-based), apr_annual: float }
+    rate_changes: list[dict] | None = None
+
+class DebtPayment(BaseModel):
+    month: str  # YYYY-MM
+    debt_id: int
+    payment: float
+    principal: float
+    interest: float
+    balance_after: float
+
+class DebtPlan(BaseModel):
+    schedule: list[DebtPayment]
+    months_to_payoff: int
+    total_interest: float
+    strategy: str

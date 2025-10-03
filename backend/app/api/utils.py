@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..core.db import get_db
 from ..services.deps import get_current_user
@@ -10,6 +10,8 @@ from ..models.security import UserTwoFA
 import secrets
 import pyotp
 import hashlib
+import requests
+import time
 
 class ProfileUpdate(BaseModel):
     full_name: str | None = None
@@ -26,6 +28,8 @@ class ProfileUpdate(BaseModel):
     maaser_opt_in: bool | None = None
 
 router = APIRouter()
+_addr_cache: dict[str, tuple[float, list[dict]]] = {}
+_ADDR_TTL = 45.0
 
 @router.get("/me")
 def me(user=Depends(get_current_user)):
@@ -56,6 +60,90 @@ def maaser(amount: float):
 @router.get("/holidays")
 def holidays(year: int):
     return get_holidays(year)
+
+
+@router.get('/address_lookup')
+def address_lookup(q: str = Query(..., min_length=3)):
+    """
+    Public endpoint: given a free-form address string, returns best-guess normalized components.
+    Uses OpenStreetMap Nominatim for geocoding without using device geolocation.
+    """
+    try:
+        resp = requests.get(
+            'https://nominatim.openstreetmap.org/search',
+            params={ 'q': q, 'format': 'json', 'addressdetails': 1, 'limit': 1 },
+            headers={ 'User-Agent': 'MalkaMoney/0.1 (address-lookup)' },
+            timeout=5,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if not data:
+            return { 'found': False }
+        addr = data[0].get('address', {})
+        house_number = addr.get('house_number')
+        road = addr.get('road') or addr.get('pedestrian') or addr.get('footway') or ''
+        line1 = ' '.join([x for x in [house_number, road] if x]) or (addr.get('neighbourhood') or addr.get('suburb') or '')
+        city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('hamlet') or ''
+        state = addr.get('state') or addr.get('region') or ''
+        postal_code = addr.get('postcode') or ''
+        country = addr.get('country') or ''
+        return {
+            'found': True,
+            'address_line1': line1,
+            'city': city,
+            'state': state,
+            'postal_code': postal_code,
+            'country': country,
+        }
+    except Exception as e:
+        # Do not leak upstream errors; return not found
+        return { 'found': False }
+
+
+@router.get('/address_suggest')
+def address_suggest(q: str = Query(..., min_length=3), limit: int = 5):
+    """
+    Returns up to `limit` suggestions for the given free-form query, with a label and normalized fields.
+    """
+    try:
+        # cache lookup
+        key = f"{q.strip()}::{max(1, min(limit, 10))}"
+        now = time.time()
+        if key in _addr_cache:
+            ts, items = _addr_cache[key]
+            if now - ts < _ADDR_TTL:
+                return { 'items': items }
+        resp = requests.get(
+            'https://nominatim.openstreetmap.org/search',
+            params={ 'q': q, 'format': 'json', 'addressdetails': 1, 'limit': max(1, min(limit, 10)) },
+            headers={ 'User-Agent': 'MalkaMoney/0.1 (address-suggest)' },
+            timeout=5,
+        )
+        resp.raise_for_status()
+        rows = resp.json() or []
+        out = []
+        for row in rows:
+            addr = row.get('address', {})
+            house_number = addr.get('house_number')
+            road = addr.get('road') or addr.get('pedestrian') or addr.get('footway') or ''
+            line1 = ' '.join([x for x in [house_number, road] if x]) or (addr.get('neighbourhood') or addr.get('suburb') or '')
+            city = addr.get('city') or addr.get('town') or addr.get('village') or addr.get('hamlet') or ''
+            state = addr.get('state') or addr.get('region') or ''
+            postal_code = addr.get('postcode') or ''
+            country = addr.get('country') or ''
+            label = row.get('display_name') or ' '.join(filter(None, [line1, city, state, postal_code, country]))
+            out.append({
+                'label': label,
+                'address_line1': line1,
+                'city': city,
+                'state': state,
+                'postal_code': postal_code,
+                'country': country,
+            })
+        _addr_cache[key] = (now, out)
+        return { 'items': out }
+    except Exception:
+        return { 'items': [] }
 
 @router.post("/settings")
 def update_settings(shabbat_mode: bool, lat: float, lon: float, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

@@ -41,6 +41,9 @@ def create_account(account_in: AccountCreate, db: Session = Depends(get_db), use
         type=AccountType(account_in.type),
         opening_balance=account_in.opening_balance,
         is_liability=account_in.is_liability,
+        apr_annual=account_in.apr_annual,
+        min_payment=account_in.min_payment,
+        due_day=account_in.due_day,
     )
     db.add(a)
     db.commit()
@@ -83,6 +86,12 @@ def update_account(account_id: int, upd: AccountUpdate, db: Session = Depends(ge
         account.type = AccountType(upd.type)
     if upd.is_liability is not None:
         account.is_liability = upd.is_liability
+    if upd.apr_annual is not None:
+        account.apr_annual = upd.apr_annual
+    if upd.min_payment is not None:
+        account.min_payment = upd.min_payment
+    if upd.due_day is not None:
+        account.due_day = upd.due_day
 
     # handle opening_balance adjustments: compute current opening transaction (if any)
     if upd.opening_balance is not None:

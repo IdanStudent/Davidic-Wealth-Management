@@ -6,7 +6,7 @@ export default function Budgets() {
   const [budgets, setBudgets] = useState([])
   const [categories, setCategories] = useState([])
   const [month, setMonth] = useState(new Date().toISOString().slice(0,7))
-  const [items, setItems] = useState([{ category_id: 0, limit: 0 }])
+  const [items, setItems] = useState([{ category_id: 0, limit: 0, item_type: 'fixed', tolerance_pct: 0.15, window_months: 3 }])
 
   const load = async () => {
     const [cats, b] = await Promise.all([
@@ -18,7 +18,7 @@ export default function Budgets() {
   }
   useEffect(() => { load() }, [])
 
-  const addItem = () => setItems([...items, { category_id: 0, limit: 0 }])
+  const addItem = () => setItems([...items, { category_id: 0, limit: 0, item_type: 'fixed', tolerance_pct: 0.15, window_months: 3 }])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -46,6 +46,25 @@ export default function Budgets() {
               const v = parseFloat(e.target.value)
               setItems(items.map((x,i)=> i===idx?{...x, limit:v}:x))
             }} placeholder="Limit" />
+            <select className="border p-2" value={it.item_type} onChange={e=>{
+              const v = e.target.value
+              setItems(items.map((x,i)=> i===idx?{...x, item_type:v}:x))
+            }}>
+              <option value="fixed">Fixed</option>
+              <option value="flex">Flex</option>
+            </select>
+            {it.item_type === 'flex' && (
+              <>
+                <input className="border p-2 w-28" type="number" step="0.01" value={it.tolerance_pct} onChange={e=>{
+                  const v = parseFloat(e.target.value)
+                  setItems(items.map((x,i)=> i===idx?{...x, tolerance_pct:v}:x))
+                }} placeholder="Tolerance %" />
+                <input className="border p-2 w-24" type="number" value={it.window_months} onChange={e=>{
+                  const v = parseInt(e.target.value)
+                  setItems(items.map((x,i)=> i===idx?{...x, window_months:v}:x))
+                }} placeholder="Window" />
+              </>
+            )}
           </div>
         ))}
         <div className="flex gap-2">
@@ -63,7 +82,7 @@ export default function Budgets() {
               <ul className="ml-4 list-disc">
                 {b.items?.map(it => {
                   const c = categories.find(c=>c.id===it.category_id)
-                  return <li key={it.id}>{c?.name || `Category ${it.category_id}`} - ${it.limit.toFixed(2)}</li>
+                  return <li key={it.id}>{c?.name || `Category ${it.category_id}`} - ${it.limit.toFixed(2)} {it.item_type==='flex' && <span className="text-xs text-gray-500">(flex ±{Math.round((it.tolerance_pct||0)*100)}%, {it.window_months}m)</span>}</li>
                 })}
               </ul>
             </li>

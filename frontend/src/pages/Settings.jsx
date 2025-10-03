@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../components/AuthContext'
 
+function digitsOnly(v){ return (v||'').replace(/\D/g,'').slice(0,10) }
+function formatPhone(v){
+  const d = digitsOnly(v)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`
+  return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`
+}
+
 export default function Settings() {
   const { api, me } = useAuth()
   const [tab, setTab] = useState('profile')
@@ -72,7 +80,8 @@ export default function Settings() {
   }, [api])
 
   const saveProfile = async () => {
-    await api.post('/utils/profile', profile)
+    const payload = { ...profile, phone: digitsOnly(profile.phone) }
+    await api.post('/utils/profile', payload)
     alert('Profile updated')
   }
 
@@ -128,7 +137,7 @@ export default function Settings() {
         <div className="grid grid-cols-2 gap-3">
           <Input label="Full Name" value={profile.full_name} onChange={v=>setProfile({...profile, full_name:v})} />
           <Input label="DOB (YYYY-MM-DD)" value={profile.dob} onChange={v=>setProfile({...profile, dob:v})} />
-          <Input label="Phone" value={profile.phone} onChange={v=>setProfile({...profile, phone:v})} />
+          <PhoneInput label="Phone" value={profile.phone} onChange={v=>setProfile({...profile, phone:v})} />
           <Input label="Base Currency" value={profile.base_currency} onChange={v=>setProfile({...profile, base_currency:v})} />
           <Input label="Address Line 1" value={profile.address_line1} onChange={v=>setProfile({...profile, address_line1:v})} className="col-span-2" />
           <Input label="Address Line 2" value={profile.address_line2} onChange={v=>setProfile({...profile, address_line2:v})} className="col-span-2" />
@@ -262,6 +271,22 @@ function Input({ label, value, onChange, type='text', className='' }) {
     <label className={`text-sm ${className}`}>
       <div className="text-gray-600 mb-1">{label}</div>
       <input className="border p-2 w-full" value={value} type={type} onChange={e=>onChange(e.target.value)} />
+    </label>
+  )
+}
+
+function PhoneInput({ label, value, onChange, className='' }){
+  return (
+    <label className={`text-sm ${className}`}>
+      <div className="text-gray-600 mb-1">{label}</div>
+      <input
+        className="border p-2 w-full"
+        value={value}
+        inputMode="tel"
+        maxLength={14}
+        placeholder="(555) 123-4567"
+        onChange={e=> onChange(formatPhone(e.target.value))}
+      />
     </label>
   )
 }

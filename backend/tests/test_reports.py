@@ -8,6 +8,7 @@ if ROOT not in sys.path:
 
 from backend.app.main import app
 from backend.app.core.db import get_db, Base, engine
+from backend.app.services.bootstrap import migrate_sqlite
 from backend.app.models.finance import Account, Transaction, AccountType
 from backend.app.models.user import User
 from sqlalchemy.orm import Session
@@ -16,7 +17,10 @@ from datetime import date
 # Use the real DB but isolate by creating/dropping tables around tests
 @pytest.fixture(autouse=True)
 def create_db():
+    # Ensure a clean slate and apply pragmatic migrations for SQLite
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    migrate_sqlite(engine)
     yield
     Base.metadata.drop_all(bind=engine)
 
@@ -54,7 +58,7 @@ def test_networth_endpoint(db_session):
     db_session.add(t)
     db_session.commit()
 
-    client = TestClient(app)
+    client = TestClient(app, base_url="http://localhost")
     resp = client.get('/api/reports/networth')
     assert resp.status_code == 200
     data = resp.json()

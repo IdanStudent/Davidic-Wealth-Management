@@ -10,6 +10,8 @@ import Reports from './pages/Reports'
 import Categories from './pages/Categories'
 import Investments from './pages/Investments'
 import Settings from './pages/Settings'
+import DebtPlanner from './pages/DebtPlanner'
+import Goals from './pages/Goals'
 import { AuthProvider, useAuth } from './components/AuthContext'
 import Sidebar from './components/Sidebar'
 
@@ -99,6 +101,8 @@ function AppShell() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/investments" element={<Investments />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/debt" element={<DebtPlanner />} />
+            <Route path="/goals" element={<Goals />} />
           </Routes>
         </main>
       </div>

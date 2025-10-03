@@ -22,6 +22,10 @@ class Account(Base):
     type = Column(Enum(AccountType), nullable=False)
     opening_balance = Column(Float, default=0.0)
     is_liability = Column(Boolean, default=False)
+    # Debt planner optional fields
+    apr_annual = Column(Float, nullable=True)
+    min_payment = Column(Float, nullable=True)
+    due_day = Column(Integer, nullable=True)  # 1-28 preferred
 
     owner = relationship("User", back_populates="accounts")
     # specify foreign_keys to disambiguate from Transaction.counterparty_account_id
@@ -75,6 +79,10 @@ class BudgetItem(Base):
     budget_id = Column(Integer, ForeignKey("budgets.id"), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     limit = Column(Float, nullable=False)
+    # Flex budgets support
+    item_type = Column(String, default="fixed")  # fixed | flex
+    tolerance_pct = Column(Float, default=0.15)   # 15% default variance window for flex categories
+    window_months = Column(Integer, default=3)    # rolling window size for flex calc
 
     budget = relationship("Budget", back_populates="items")
     category = relationship("Category")
@@ -124,3 +132,14 @@ class InvestmentTransaction(Base):
 
     investment = relationship('Investment', back_populates='transactions')
     account = relationship('Account')
+
+
+class CategoryRule(Base):
+    __tablename__ = 'category_rules'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    pattern = Column(String, nullable=False)  # substring match against note
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)
+    min_amount = Column(Float, nullable=True)
+    max_amount = Column(Float, nullable=True)
+    case_sensitive = Column(Boolean, default=False)

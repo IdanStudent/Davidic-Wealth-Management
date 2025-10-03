@@ -23,7 +23,14 @@ def create_budget(budget_in: BudgetCreate, db: Session = Depends(get_db), user=D
         cat = db.query(Category).filter(Category.id == item.category_id, Category.user_id == user.id).first()
         if not cat:
             raise HTTPException(status_code=404, detail=f"Category {item.category_id} not found")
-        db.add(BudgetItem(budget_id=b.id, category_id=item.category_id, limit=item.limit))
+        db.add(BudgetItem(
+            budget_id=b.id,
+            category_id=item.category_id,
+            limit=item.limit,
+            item_type=(item.item_type or "fixed"),
+            tolerance_pct=(item.tolerance_pct if item.tolerance_pct is not None else 0.15),
+            window_months=(item.window_months if item.window_months is not None else 3),
+        ))
     db.commit()
     db.refresh(b)
     return b

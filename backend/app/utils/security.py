@@ -8,7 +8,7 @@ import hmac
 from ..core.config import settings
 
 ALGO = "pbkdf2_sha256"
-ITERATIONS = 260000
+ITERATIONS = getattr(settings, "PASSWORD_HASH_ITERATIONS", 260000)
 SALT_LEN = 16
 
 

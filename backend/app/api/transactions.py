@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from ..core.db import get_db
 from ..schemas.finance import TransactionCreate, TransactionOut
-from ..models.finance import Transaction, Account, Category, AccountType, CategoryType
+from ..models.finance import Transaction, Account, Category, AccountType, CategoryType, CategoryRule
 from ..services.deps import get_current_user, enforce_shabbat_readonly
 from pydantic import BaseModel, field_validator
 from datetime import date
@@ -45,6 +45,29 @@ class TransactionUpdate(BaseModel):
     date: Optional[Any] = None
     amount: Optional[float] = None
     note: Optional[str] = None
+
+
+class ImportRow(BaseModel):
+    account_id: int
+    date: Any
+    amount: float
+    note: Optional[str] = None
+    category_id: Optional[int] = None
+
+    @field_validator('date', mode='before')
+    def _coerce_date(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, date):
+            return v
+        try:
+            return date.fromisoformat(str(v))
+        except Exception:
+            raise ValueError('Invalid date format')
+
+
+class ImportPayload(BaseModel):
+    rows: list[ImportRow]
 
 @router.get("/", response_model=List[TransactionOut])
 def list_transactions(db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -125,7 +148,40 @@ def create_transaction(tx_in: TransactionCreate, db: Session = Depends(get_db), 
             db.refresh(tx)
             created_tx = tx
     else:
-        # No category provided: preserve sign as supplied by client
+        # No category provided: try rules-based categorization (simple substring + amount bounds)
+        assigned_category_id = None
+        note_text = (tx_in.note or "")
+        rules = db.query(CategoryRule).filter(CategoryRule.user_id == user.id).all()
+        for r in rules:
+            txt = note_text if r.case_sensitive else note_text.lower()
+            pat = r.pattern if r.case_sensitive else (r.pattern or '').lower()
+            if pat and pat in txt:
+                amt = float(tx_in.amount)
+                if (r.min_amount is not None and amt < r.min_amount):
+                    continue
+                if (r.max_amount is not None and amt > r.max_amount):
+                    continue
+                assigned_category_id = r.category_id
+                break
+        if assigned_category_id:
+            cat = db.query(Category).filter(Category.id == assigned_category_id, Category.user_id == user.id).first()
+            if cat:
+                magnitude = abs(float(tx_in.amount))
+                signed = -magnitude if cat.type == CategoryType.EXPENSE else magnitude
+                tx = Transaction(
+                    user_id=user.id,
+                    account_id=tx_in.account_id,
+                    category_id=assigned_category_id,
+                    date=tx_in.date,
+                    amount=signed,
+                    note=tx_in.note or "",
+                )
+                db.add(tx)
+                db.commit()
+                db.refresh(tx)
+                created_tx = tx
+                return created_tx
+        # Fallback: preserve sign as supplied by client
         tx = Transaction(
             user_id=user.id,
             account_id=tx_in.account_id,
@@ -236,3 +292,62 @@ def transfer(t: TransferIn, db: Session = Depends(get_db), user=Depends(get_curr
     db.refresh(tx_to)
 
     return tx_from
+
+
+@router.post('/import')
+def import_transactions(payload: ImportPayload, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Bulk import transactions via simple JSON rows. Amounts should be positive; signs are applied by category type when provided,
+    or left as-is (positive) when no category is given (rules may assign)."""
+    imported = 0
+    errors: list[dict] = []
+    for idx, row in enumerate(payload.rows):
+        try:
+            acc = db.query(Account).filter(Account.id == row.account_id, Account.user_id == user.id).first()
+            if not acc:
+                raise HTTPException(status_code=400, detail=f"Row {idx}: Account not found")
+            assigned_category_id = None
+            cat = None
+            if row.category_id:
+                cat = db.query(Category).filter(Category.id == row.category_id, Category.user_id == user.id).first()
+                if not cat:
+                    raise HTTPException(status_code=400, detail=f"Row {idx}: Category not found")
+                assigned_category_id = row.category_id
+            else:
+                # try rules
+                note_text = row.note or ""
+                rules = db.query(CategoryRule).filter(CategoryRule.user_id == user.id).all()
+                for r in rules:
+                    txt = note_text if r.case_sensitive else note_text.lower()
+                    pat = r.pattern if r.case_sensitive else (r.pattern or '').lower()
+                    if pat and pat in txt:
+                        amt = float(row.amount)
+                        if (r.min_amount is not None and amt < r.min_amount):
+                            continue
+                        if (r.max_amount is not None and amt > r.max_amount):
+                            continue
+                        assigned_category_id = r.category_id
+                        cat = db.query(Category).filter(Category.id == assigned_category_id, Category.user_id == user.id).first()
+                        break
+            # compute signed amount
+            magnitude = abs(float(row.amount))
+            if cat:
+                signed = -magnitude if cat.type == CategoryType.EXPENSE else magnitude
+            else:
+                # leave positive magnitude for uncategorized
+                signed = magnitude
+            tx = Transaction(
+                user_id=user.id,
+                account_id=row.account_id,
+                category_id=assigned_category_id,
+                date=row.date if isinstance(row.date, date) else date.fromisoformat(str(row.date)),
+                amount=signed,
+                note=row.note or "",
+            )
+            db.add(tx)
+            imported += 1
+        except HTTPException as he:
+            errors.append({"index": idx, "detail": he.detail})
+        except Exception as e:
+            errors.append({"index": idx, "detail": str(e)})
+    db.commit()
+    return {"imported": imported, "errors": errors}

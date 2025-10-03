@@ -48,6 +48,7 @@ def migrate_sqlite(engine):
         ("postal_code", "TEXT"),
         ("country", "TEXT"),
         ("maaser_pct", "REAL"),
+        ("username", "TEXT"),
     ]
     with engine.connect() as conn:
         for name, typ in cols:
@@ -63,6 +64,15 @@ def migrate_sqlite(engine):
             pass
         try:
             conn.execute(text("ALTER TABLE transactions ADD COLUMN counterparty_account_id INTEGER NULL"))
+        except Exception:
+            pass
+        # Add username column and unique index
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN username TEXT"))
+        except Exception:
+            pass
+        try:
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_username ON users(username)"))
         except Exception:
             pass
         # Ensure user_twofa table has recovery_codes column
@@ -99,3 +109,23 @@ def migrate_sqlite(engine):
             '''))
         except Exception:
             pass
+        # Add flex budget columns if missing
+        for col, typ in (
+            ("item_type", "TEXT"),
+            ("tolerance_pct", "REAL"),
+            ("window_months", "INTEGER"),
+        ):
+            try:
+                conn.execute(text(f"ALTER TABLE budget_items ADD COLUMN {col} {typ}"))
+            except Exception:
+                pass
+        # Add debt-related account columns
+        for col, typ in (
+            ("apr_annual", "REAL"),
+            ("min_payment", "REAL"),
+            ("due_day", "INTEGER"),
+        ):
+            try:
+                conn.execute(text(f"ALTER TABLE accounts ADD COLUMN {col} {typ}"))
+            except Exception:
+                pass

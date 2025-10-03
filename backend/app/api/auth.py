@@ -9,15 +9,36 @@ from sqlalchemy.exc import OperationalError
 import pyotp
 import hashlib
 from datetime import timedelta
+import dns.resolver
+from urllib.parse import urlparse
+import re
+from ..utils.crypto import decrypt_str
 
 router = APIRouter()
 
 @router.post("/register", response_model=UserOut)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user_in.email).first()
+    # Basic email domain existence check (MX -> A/AAAA fallback)
+    domain = user_in.email.split('@')[-1].lower().strip()
+    try:
+        # Try MX records first
+        answers = dns.resolver.resolve(domain, 'MX')
+        if not answers:
+            raise Exception('no mx')
+    except Exception:
+        # Fallback to A/AAAA
+        try:
+            dns.resolver.resolve(domain, 'A')
+        except Exception:
+            try:
+                dns.resolver.resolve(domain, 'AAAA')
+            except Exception:
+                raise HTTPException(status_code=400, detail="Email domain does not resolve")
+    existing = db.query(User).filter((User.email == user_in.email) | (User.username == user_in.username)).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=400, detail="Email or username already registered")
     user = User(
+        username=user_in.username,
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name or "",
@@ -38,7 +59,10 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email).first()
+    if user_in.username:
+        user = db.query(User).filter(User.username == user_in.username).first()
+    else:
+        user = db.query(User).filter(User.email == user_in.email).first()
     if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     # If 2FA is enabled, require otp or recovery in payload when present in schema
@@ -54,7 +78,8 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         ok = False
         if otp:
             otp_clean = otp.strip().replace(' ', '')
-            ok = pyotp.TOTP(twofa.secret).verify(otp_clean, valid_window=2)
+            secret_plain = decrypt_str(twofa.secret)
+            ok = pyotp.TOTP(secret_plain).verify(otp_clean, valid_window=2)
         elif recovery and twofa.recovery_codes:
             hashes = set(twofa.recovery_codes.split(','))
             rh = hashlib.sha256(recovery.encode()).hexdigest()

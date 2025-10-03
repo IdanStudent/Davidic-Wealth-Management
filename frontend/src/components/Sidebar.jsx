@@ -28,6 +28,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
     { to: '/transactions', label: 'Transactions' },
     { to: '/budgets', label: 'Budgets' },
     { to: '/reports', label: 'Reports' },
+    { to: '/debt', label: 'Debt Planner' },
+    { to: '/goals', label: 'Goals' },
     { to: '/settings', label: 'Settings' },
   ]
 
