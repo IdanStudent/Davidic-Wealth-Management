@@ -36,7 +36,7 @@ app.add_middleware(
 
 hosts = _split_csv(settings.ALLOWED_HOSTS)
 if hosts and hosts != ["*"]:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 if settings.HTTPS_REDIRECT:
     app.add_middleware(HTTPSRedirectMiddleware)
